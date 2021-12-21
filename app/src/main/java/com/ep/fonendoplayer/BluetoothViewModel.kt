@@ -29,7 +29,7 @@ class BluetoothViewModel(): ViewModel() {
     private val scanner = Scanner {
         logging {
             engine = SystemLogEngine
-            level = Logging.Level.Warnings
+            level = Logging.Level.Data
             format = Logging.Format.Multiline
         }
     }
