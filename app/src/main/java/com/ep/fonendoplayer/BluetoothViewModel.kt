@@ -1,14 +1,14 @@
 package com.ep.fonendoplayer
 
-import android.app.Application
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.juul.kable.Advertisement
+import com.juul.kable.PeripheralBuilder
 import com.juul.kable.Scanner
 import com.juul.kable.logs.Logging
 import com.juul.kable.logs.SystemLogEngine
+import com.juul.kable.peripheral
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -47,6 +47,37 @@ class BluetoothViewModel(): ViewModel() {
                        _advertisements.value = bluetoothMap.values.toList()
                     }
             }
+        }
+    }
+
+    /**
+     * @param address - of the device we wanna pair with
+     */
+    fun pairDevice(address: String) {
+        val advertisement = _advertisements.value.find { it.address == address } ?: throw IllegalArgumentException("Invalid Advertisement for address: $address") // no handling error here just throwing an exception
+        viewModelScope.launch {
+            peripheral(advertisement){
+                setUpLogging()
+                // TODO immplement connect()
+
+            }
+        }
+
+    }
+
+    private fun PeripheralBuilder.setUpLogging() {
+        logging {
+            level = Logging.Level.Data
+            // 2 options to log the I/O data
+    //                    data = Hex {
+    //                        separator = " "
+    //                        lowerCase = false
+    //                    }
+    //                    data = Logging.DataProcessor { bytes ->
+    //                        // Convert `bytes` to desired String representation, for example:
+    //                        bytes.joinToString { byte -> byte.toString() } // Show data as integer representation of bytes.
+    //                    }
+            identifier = "Naran" // prefix just to find our data easily
         }
     }
 }
