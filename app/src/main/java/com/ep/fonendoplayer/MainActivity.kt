@@ -2,6 +2,7 @@ package com.ep.fonendoplayer
 
 import android.Manifest
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material.Button
@@ -18,15 +19,15 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.LiveData
 import com.juul.kable.Advertisement
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.StateFlow
@@ -49,6 +50,17 @@ class MainActivity : ComponentActivity() {
                 Surface(color = MaterialTheme.colors.background) {
                     Scan({ viewModel.scan() }, viewModel.advertisements, { viewModel.pairDevice(it)})
                 }
+            }
+        }
+
+        observeErrors(viewModel)
+    }
+
+    // Just show a toast with a message
+    private fun observeErrors(viewModel: BluetoothViewModel) {
+        viewModel.errorState.observe(this) { errorState ->
+            errorState.message.takeIf { it.isNotEmpty() }?.run {
+                Toast.makeText(applicationContext, this, Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -90,8 +102,17 @@ fun BluetoothDevices(advertisements: StateFlow<List<Advertisement>>, onItemSelec
             Row(
                 modifier = Modifier
                     .padding(4.dp) // margin
-                    .border(border = BorderStroke(1.dp, Color.Gray),  shape = RoundedCornerShape(4.dp))
-                    .background(color = if(isSelected(it.address,selectedItem)) Color.Blue else Color.White, shape = RoundedCornerShape(4.dp))
+                    .border(
+                        border = BorderStroke(1.dp, Color.Gray),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .background(
+                        color = if (isSelected(
+                                it.address,
+                                selectedItem
+                            )
+                        ) Color.Blue else Color.White, shape = RoundedCornerShape(4.dp)
+                    )
                     .fillMaxWidth()
                     .padding(8.dp) // padding
                     .clickable {
