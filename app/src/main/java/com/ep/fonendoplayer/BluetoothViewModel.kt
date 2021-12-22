@@ -38,15 +38,21 @@ class BluetoothViewModel : ViewModel() {
     private val _error = MutableLiveData<ErrorState>()
     val errorState: LiveData<ErrorState> = _error
 
+    private val _loading = MutableStateFlow(false)
+    val loadingState: StateFlow<LoadingState> = _loading
+
     fun scan() {
+        _loading.value = true
         viewModelScope.launch {
             withTimeoutOrNull(SCAN_DURATION_MILLIS) {
                 scanner.advertisements
                     .catch {
+                        _loading.value = false
                         _error.value = ErrorState.FetchingBluetoothFailure
                         Log.e("BluetoothViewModel", "Error fetching bluetooth: $it")
                     } // kotlin High Order Functions exposes any possible parameter of the lambda as `it`
                     .onEach { advertisement -> bluetoothMap[advertisement.address] = advertisement }
+                    .onCompletion { _loading.value = false }
                     .collect {
                         _advertisements.value = bluetoothMap.values.toList()
                     }
@@ -58,14 +64,16 @@ class BluetoothViewModel : ViewModel() {
      * @param address - of the device we wanna pair with
      */
     fun pairDevice(address: String) {
+        _loading.value = true
         val advertisement = _advertisements.value.find { it.address == address } ?: throw IllegalArgumentException("Invalid Advertisement for address: $address") // no handling error here just throwing an exception
         viewModelScope.launch {
             val peripheral = peripheral(advertisement) { setUpLogging() }
 
             //try to connect with the peripheral. This method will wait until connection is reached before move to peripheral.state.collect magic below
-            runCatching { peripheral.connect() }
+            runCatching { peripheral.connect() } // FIXME here always fails to connect with exception Failed to connect :_(
                 .onSuccess {  Log.i("BluetoothViewModel", "Connection succeed with peripheral: $peripheral" ) }
                 .onFailure {
+                    _loading.value = false
                     _error.value = ErrorState.ConnectionFailed
                     Log.e("BluetoothViewModel", "Error connecting with peripheral: $it")
                 }
@@ -87,11 +95,13 @@ class BluetoothViewModel : ViewModel() {
             characteristicList.forEach {
                 peripheral.observe(it)
                     .catch {
+                        _loading.value = false
                         _error.value = ErrorState.PeripheralObserveFailure
                         Log.e("BluetoothViewModel", "Error observing peripheral: $it")
                     }
                     .onCompletion {
                         // Allow 5 seconds for graceful disconnect before forcefully closing `Peripheral`.
+                        _loading.value = false
                         withTimeoutOrNull(5000L) { peripheral.disconnect() }
                     }
                     .collect { data ->
@@ -125,3 +135,5 @@ sealed class ErrorState(val message: String) {
     object PeripheralObserveFailure: ErrorState("Error while observing data from peripheral")
     object FetchingBluetoothFailure: ErrorState("Cannot fetch bluetooth devices. Check bluetooth is on!!")
 }
+
+typealias LoadingState = Boolean
