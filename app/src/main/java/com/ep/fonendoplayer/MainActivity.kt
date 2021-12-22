@@ -2,6 +2,7 @@ package com.ep.fonendoplayer
 
 import android.Manifest
 import android.os.Bundle
+import android.os.Handler
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,9 +26,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
+import com.ep.fonendoplayer.utils.play
+import com.ep.fonendoplayer.utils.playFonendo
+import com.ep.fonendoplayer.utils.playThunder
+import com.ep.fonendoplayer.utils.track
 import com.juul.kable.Advertisement
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
 
 @ExperimentalAnimationApi
@@ -52,6 +63,14 @@ class MainActivity : ComponentActivity() {
             }
         }
         observeErrors(viewModel)
+        observePlayBack(viewModel)
+
+    }
+
+    private fun observePlayBack(viewModel: BluetoothViewModel) {
+        viewModel.playbackState.observe(this) {
+            track.play(it)
+        }
     }
 
     // Just show a toast with a message

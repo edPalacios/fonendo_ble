@@ -1,10 +1,14 @@
 package com.ep.fonendoplayer
 
 import android.util.Log
+import androidx.compose.runtime.MutableState
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ep.fonendoplayer.decoders.AudioDecoder
+import com.ep.fonendoplayer.utils.play
+import com.ep.fonendoplayer.utils.track
 import com.juul.kable.*
 import com.juul.kable.logs.Hex
 import com.juul.kable.logs.Logging
@@ -40,6 +44,9 @@ class BluetoothViewModel : ViewModel() {
 
     private val _loading = MutableStateFlow(false)
     val loadingState: StateFlow<LoadingState> = _loading
+
+    private val _playback = MutableLiveData<ByteArray>()
+    val playbackState : LiveData<ByteArray> = _playback
 
     fun scan() {
         _loading.value = true
@@ -106,7 +113,9 @@ class BluetoothViewModel : ViewModel() {
                     }
                     .collect { data ->
                         Log.v("BluetoothViewModel", "Data for characteristic: $it: $data")
-                        // TODO process data here
+                        // TODO process data here to play
+                        val decodedData = AudioDecoder().decode(data)
+                        _playback.value = decodedData
                     }
             }
         }

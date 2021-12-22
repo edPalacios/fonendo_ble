@@ -2,7 +2,9 @@ package com.ep.fonendoplayer.utils
 
 import android.content.Context
 import android.media.*
+import android.media.AudioManager.STREAM_MUSIC
 import android.util.Log
+import com.ep.fonendoplayer.R
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -11,7 +13,7 @@ import java.lang.Exception
 
 
 val track by lazy {
-    val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
+    val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).setLegacyStreamType(STREAM_MUSIC).build()
     val audioFormat = AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).setSampleRate(44100)
             .setChannelMask(4).build()
     AudioTrack(attributes, audioFormat, 1024, 1, 0)
@@ -46,18 +48,25 @@ fun playMediaPlayer(file: File) {
 }
 
 
-fun playtrack() {
+fun AudioTrack.play(byteArray: ByteArray) {
     try {
-        track.play()
+        Log.i("AudioTrack", "writing bytes to play")
+        write(byteArray, 0, byteArray.size)
+        Log.i("AudioTrack", "play on")
+        play()
     } catch (ex: Exception) {
-        println("//////// NOT WORKING")
-        ex.printStackTrace()
+        Log.e("AudioTrack", "Error playing track: $ex")
     }
-
 }
 
-fun playbackPrepare(byteArray: ByteArray) {
-    track.write(byteArray, 0, byteArray.size)
+fun Context.playThunder() {
+        val wavBytes = resources.openRawResource(R.raw.thunder).readBytes()
+        track.play(wavBytes)
+}
+
+fun Context.playFonendo() {
+    val wavBytes = resources.openRawResource(R.raw.fonendo_hex).readBytes()
+    track.play(wavBytes)
 }
 
 fun playAudioBase64(base64EncodedString: String) {
