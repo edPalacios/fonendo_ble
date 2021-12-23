@@ -5,11 +5,13 @@ import android.media.*
 import android.media.AudioManager.STREAM_MUSIC
 import android.util.Log
 import com.ep.fonendoplayer.R
+import com.ep.fonendoplayer.decoders.AudioDecoder
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.lang.Exception
+import kotlin.experimental.and
 
 
 val track by lazy {
@@ -50,8 +52,28 @@ fun playMediaPlayer(file: File) {
 
 fun AudioTrack.play(byteArray: ByteArray) {
     try {
+//        val n = 16
+//        val array2 = ByteArray(n)
+//        for (i in 0 until n) {
+//            array2[i] = byteArray.get(i + 4)
+//        }
+
+//        val decode = AudioDecoder().decode(byteArray)
+//
+//        var n3 = 0
+//        val array3 = ShortArray(decode.size / 2)
+//        for (j in 0 until decode.size / 2) {
+//            val n2 = ((decode[j * 2 + 1] and 0xFF.toByte()).toInt() shl 8 or ((decode[j * 2] and 0xFF.toByte()).toInt()))
+//                n3 = n2 * 8
+//                if (n3 <= 32767) {
+//                    break
+//                }
+//                n3 = 32767
+//                array3[j] = n3.toShort()
+//        }
+
         Log.i("AudioTrack", "writing bytes to play")
-        write(byteArray, 0, byteArray.size)
+        write(byteArray, 0, byteArray.size) // TODO somehow this plays noise with the recorded sound mixed wft!!!
         Log.i("AudioTrack", "play on")
         play()
     } catch (ex: Exception) {

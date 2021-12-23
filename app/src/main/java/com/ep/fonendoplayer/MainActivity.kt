@@ -34,6 +34,7 @@ import com.juul.kable.Advertisement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.StateFlow
@@ -48,23 +49,23 @@ class MainActivity : ComponentActivity() {
 
         // Needed to make bluetooth work: to find the devices we need to access the location of the user, so permission is requried to the user
         ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1234) // ignore the request code but be sure you dont deny permissions!!
-
-        // the controller for the data of the screen
-        val viewModel = viewModels<BluetoothViewModel>().value
-
-        // inside here we build the view
-        setContent {
-            FonendoPlayerTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(color = MaterialTheme.colors.background) {
-                    Scan({ viewModel.scan() }, viewModel.advertisements, { viewModel.pairDevice(it)})
-                    Loading(viewModel.loadingState)
-                }
-            }
-        }
-        observeErrors(viewModel)
-        observePlayBack(viewModel)
-
+//
+//        // the controller for the data of the screen
+//        val viewModel = viewModels<BluetoothViewModel>().value
+//
+//        // inside here we build the view
+//        setContent {
+//            FonendoPlayerTheme {
+//                // A surface container using the 'background' color from the theme
+//                Surface(color = MaterialTheme.colors.background) {
+//                    Scan({ viewModel.scan() }, viewModel.advertisements, { viewModel.pairDevice(it)})
+//                    Loading(viewModel.loadingState)
+//                }
+//            }
+//        }
+//        observeErrors(viewModel)
+//        observePlayBack(viewModel)
+        playFonendo()
     }
 
     private fun observePlayBack(viewModel: BluetoothViewModel) {
