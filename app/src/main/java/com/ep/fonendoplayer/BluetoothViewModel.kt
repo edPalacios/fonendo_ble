@@ -1,22 +1,17 @@
 package com.ep.fonendoplayer
 
 import android.util.Log
-import androidx.compose.runtime.MutableState
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ep.fonendoplayer.decoders.AudioDecoder
-import com.ep.fonendoplayer.utils.play
-import com.ep.fonendoplayer.utils.track
 import com.juul.kable.*
-import com.juul.kable.logs.Hex
 import com.juul.kable.logs.Logging
 import com.juul.kable.logs.SystemLogEngine
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import java.io.File.separator
 import java.util.concurrent.TimeUnit
 
 class BluetoothViewModel : ViewModel() {
@@ -74,10 +69,15 @@ class BluetoothViewModel : ViewModel() {
         _loading.value = true
         val advertisement = _advertisements.value.find { it.address == address } ?: throw IllegalArgumentException("Invalid Advertisement for address: $address") // no handling error here just throwing an exception
         viewModelScope.launch {
-            val peripheral = peripheral(advertisement) { setUpLogging() }
+            val peripheral = peripheral(advertisement) {
+                setUpLogging()
+                onServicesDiscovered {
+                    Log.i("BluetoothViewModel", "onServicesDiscovered" )
+                }
+            }
 
             //try to connect with the peripheral. This method will wait until connection is reached before move to peripheral.state.collect magic below
-            runCatching { peripheral.connect() } // FIXME here always fails to connect with exception Failed to connect :_(
+            runCatching { peripheral.connect() } // FIXME here always fails to connect with exception Failed to connect :_(  Could be im always trying to pair with a device that is way to far...
                 .onSuccess {  Log.i("BluetoothViewModel", "Connection succeed with peripheral: $peripheral" ) }
                 .onFailure {
                     _loading.value = false
@@ -87,39 +87,49 @@ class BluetoothViewModel : ViewModel() {
 
             peripheral.state.collect { state ->
                 Log.i("BluetoothViewModel", "Bluetooth peripheral state: $state")
-            }
-
-            // Data from bluetooth is exposed in a kinda like tree structure: listOf(Services(listOf(Characteristics(listOf(Descriptor)))))
-            val characteristicList = peripheral.services?.flatMap { service ->
-                service.characteristics.map { characteristic ->
-                    characteristicOf(
-                        service = characteristic.serviceUuid.toString(),
-                        characteristic = characteristic.characteristicUuid.toString()
-                    )
+                when (state) {
+                    State.Connected -> fetchData(peripheral)
+                    else -> {/*no-op, in case i leave commented other states*/}
+//                    State.Disconnecting ->
+//                    is State.Disconnected ->
+//                    State.Connecting.Bluetooth -> TODO()
+//                    State.Connecting.Services -> TODO()
+//                    State.Connecting.Observes -> TODO()
                 }
-            }.orEmpty()
-
-            characteristicList.forEach {
-                peripheral.observe(it)
-                    .catch {
-                        _loading.value = false
-                        _error.value = ErrorState.PeripheralObserveFailure
-                        Log.e("BluetoothViewModel", "Error observing peripheral: $it")
-                    }
-                    .onCompletion {
-                        // Allow 5 seconds for graceful disconnect before forcefully closing `Peripheral`.
-                        _loading.value = false
-                        withTimeoutOrNull(5000L) { peripheral.disconnect() }
-                    }
-                    .collect { data ->
-                        Log.v("BluetoothViewModel", "Data for characteristic: $it: $data")
-                        // TODO process data here to play
-                        val decodedData = AudioDecoder().decode(data)
-                        _playback.value = decodedData
-                    }
             }
         }
+    }
 
+    private suspend fun fetchData(peripheral: Peripheral) {
+        // Data from bluetooth is exposed in a kinda like tree structure: listOf(Services(listOf(Characteristics(listOf(Descriptor)))))
+        val characteristicList = peripheral.services?.flatMap { service ->
+            service.characteristics.map { characteristic ->
+                characteristicOf(
+                    service = characteristic.serviceUuid.toString(),
+                    characteristic = characteristic.characteristicUuid.toString()
+                )
+            }
+        }.orEmpty()
+
+        characteristicList.forEach {
+            peripheral.observe(it)
+                .catch {
+                    _loading.value = false
+                    _error.value = ErrorState.PeripheralObserveFailure
+                    Log.e("BluetoothViewModel", "Error observing peripheral: $it")
+                }
+                .onCompletion {
+                    // Allow 5 seconds for graceful disconnect before forcefully closing `Peripheral`.
+                    _loading.value = false
+                    withTimeoutOrNull(5000L) { peripheral.disconnect() }
+                }
+                .collect { data ->
+                    Log.v("BluetoothViewModel", "Data for characteristic: $it: $data")
+                    // TODO process data here to play
+                    val decodedData = AudioDecoder().decode(data)
+                    _playback.value = decodedData
+                }
+        }
     }
 
     private fun PeripheralBuilder.setUpLogging() {
