@@ -43,6 +43,9 @@ class BluetoothViewModel : ViewModel() {
     private val _playback = MutableLiveData<ByteArray>()
     val playbackState : LiveData<ByteArray> = _playback
 
+    private val _services = MutableStateFlow<List<DiscoveredService>>(emptyList())
+    val servicesState: StateFlow<List<DiscoveredService>> = _services
+
     fun scan() {
         _loading.value = true
         viewModelScope.launch {
@@ -65,7 +68,7 @@ class BluetoothViewModel : ViewModel() {
     /**
      * @param address - of the device we wanna pair with
      */
-    fun pairDevice(address: String) {
+    fun connect(address: String) {
         _loading.value = true
         val advertisement = _advertisements.value.find { it.address == address } ?: throw IllegalArgumentException("Invalid Advertisement for address: $address") // no handling error here just throwing an exception
         viewModelScope.launch {
@@ -98,6 +101,10 @@ class BluetoothViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    suspend fun showServices(peripheral: Peripheral) {
+        // TODO implemeent services screen
     }
 
     private suspend fun fetchData(peripheral: Peripheral) {
