@@ -22,30 +22,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.ep.fonendoplayer.BluetoothViewModel
 import com.ep.fonendoplayer.LoadingState
-import com.juul.kable.Advertisement
-import kotlinx.coroutines.flow.StateFlow
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ep.fonendoplayer.ui.theme.FonendoPlayerTheme
 import com.ep.fonendoplayer.utils.play
 import com.ep.fonendoplayer.utils.track
+import com.juul.kable.Advertisement
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.StateFlow
 
 // scanner screen with list of bluetooth devices found
+@FlowPreview
 @ExperimentalAnimationApi
 @Composable
-fun ScannerScreen(viewModel: BluetoothViewModel = viewModel()) {
-    Scan({ viewModel.scan() }, viewModel.advertisements, { viewModel.connect(it)})
+fun ScannerScreen(navController: NavController, viewModel: BluetoothViewModel = viewModel()) {
+    Scan({ viewModel.scan() }, viewModel.advertisements, { viewModel.connect(it) { screen ->
+        navController.navigate(screen.route)
+    }
+    })
     Loading(viewModel.loadingState)
     Error(viewModel)
-    PlayBack(viewModel)
-}
 
-@Composable
-fun PlayBack(viewModel: BluetoothViewModel) {
-    val byteArray by viewModel.playbackState.observeAsState()
-    byteArray?.let { track.play(it) }
 }
 
 // Just show a toast with a message
@@ -89,7 +89,7 @@ fun Scan(scan: () -> Unit, advertisements: StateFlow<List<Advertisement>>, onIte
 fun BluetoothDevicesList(advertisements: StateFlow<List<Advertisement>>, onItemSelected: (String) -> Unit) {
     var selectedItem by remember { mutableStateOf("") } //state keeps the address of the bluetooth
     val state = advertisements.collectAsState()
-    val isSelected : (String, String) -> Boolean = {item, selected -> item == selected}
+    val isSelected : (String, String) -> Boolean = { item, selected -> item == selected}
 
     LazyColumn(modifier = Modifier.fillMaxHeight()) {
         items(items = state.value, itemContent = {
